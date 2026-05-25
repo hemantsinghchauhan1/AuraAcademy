@@ -1,6 +1,6 @@
 {
   "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm install --include=dev",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
   "framework": "nextjs"
 }
