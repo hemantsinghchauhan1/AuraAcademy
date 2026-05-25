@@ -20,6 +20,10 @@ export async function getDbUser() {
         email: true,
         role: true,
         profile: true,
+        rollNumber: true,
+        degreeTrack: true,
+        isOfficialIITM: true,
+        onboardingCompleted: true,
       },
     });
 
@@ -99,6 +103,15 @@ export async function ensureDbUser() {
     });
 
     console.log(`✅ Prisma user auto-provisioned via ensureDbUser: ${userId}`);
+
+    // Trigger welcome email dynamically
+    try {
+      const { sendWelcomeEmail } = await import("@/services/emailService");
+      await sendWelcomeEmail(newUser.email, name);
+    } catch (emailErr) {
+      console.error("Non-blocking welcome email warning:", emailErr);
+    }
+
     return newUser;
   } catch (e: any) {
     // Re-throw Next.js control flow errors

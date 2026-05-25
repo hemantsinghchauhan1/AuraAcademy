@@ -46,9 +46,36 @@ model User {
   submissions          AssignmentSubmission[] @relation("StudentSubmissions")
   gradedSubmissions    AssignmentSubmission[] @relation("GradedBySubmissions")
   courseReviews        CourseReview[]
+  
+  // Gamification relations
+  xpLogs               XPLog[]
+  userAchievements     UserAchievement[]
+  userBadges           UserBadge[]
+  userMissions         UserMission[]
+  certificates         Certificate[]
+  conversationParticipations ConversationParticipant[]
+  sentMessages               Message[]
+  ownedConversations         Conversation[]         @relation("ConversationOwner")
+  pollVotes                  RoomPollVote[]
+  notifications              Notification[]
+  notificationPreference     NotificationPreference?
+  aiConversations            AiConversation[]
+  aiRecommendations          AiRecommendation[]
+  ingestionJobs              IngestionJob[]
+
+  // Onboarding & IITM fields
+  username             String?                @unique
+  bio                  String?
+  profileVisibility    Boolean                @default(true)
+  rollNumber           String?
+  degreeTrack          DegreeTrack?
+  isOfficialIITM       Boolean                @default(false)
+  onboardingCompleted  Boolean                @default(false)
+  selectedSubjects     UserSelectedSubject[]
 
   @@index([email])
   @@index([clerkId])
+  @@index([username])
 }
 
 model Profile {
@@ -65,15 +92,22 @@ model Profile {
 }
 
 model Subject {
-  id            String         @id @default(uuid())
-  name          String         @unique
-  slug          String         @unique
+  id            String                @id @default(uuid())
+  code          String?               @unique // e.g. "BSCS2002"
+  name          String                @unique
+  slug          String                @unique
   description   String
   icon          String
-  quizzes       Quiz[]
-  uploadedFiles UploadedFile[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  track         DegreeTrack?
+  level         String?               // e.g. "FOUNDATION", "DIPLOMA", "DEGREE", "ELECTIVES"
+  quizzes        Quiz[]
+  uploadedFiles  UploadedFile[]
+  ingestionJobs  IngestionJob[]
+  usersSelected  UserSelectedSubject[]
+  academicEvents AcademicEvent[]
+  studyRooms     Conversation[]
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 }
 
 model Quiz {
@@ -352,6 +386,7 @@ model Course {
   modules      Module[]
   enrollments  Enrollment[]
   reviews      CourseReview[]
+  certificates Certificate[]
   
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -501,4 +536,447 @@ model CourseReview {
   @@unique([userId, courseId])
   @@index([courseId])
 }
+
+// --- PHASE 8: Gamification & Certification System Models ---
+
+enum Rarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model Achievement {
+  id               String            @id @default(uuid())
+  title            String            @unique
+  description      String
+  icon             String            // Emoji representation
+  xpReward         Int               @default(100)
+  rarity           Rarity            @default(COMMON)
+  
+  userAchievements UserAchievement[]
+  
+  createdAt        DateTime          @default(now())
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+model Badge {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String
+  icon        String      // Emoji representation
+  
+  userBadges  UserBadge[]
+  
+  createdAt   DateTime    @default(now())
+}
+
+model UserBadge {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId    String
+  badge      Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+}
+
+enum MissionType {
+  LESSON
+  QUIZ
+  FORUM
+  STREAK
+}
+
+model Mission {
+  id           String        @id @default(uuid())
+  title        String
+  description  String
+  xpReward     Int           @default(50)
+  targetCount  Int           @default(1)
+  type         MissionType
+  
+  userMissions UserMission[]
+  
+  createdAt    DateTime      @default(now())
+}
+
+model UserMission {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId    String
+  mission      Mission     @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  
+  currentCount Int         @default(0)
+  completed    Boolean     @default(false)
+  claimed      Boolean     @default(false)
+  
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([userId, missionId])
+  @@index([userId])
+  @@index([missionId])
+}
+
+model Certificate {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId        String
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  certificateCode String   @unique // verification ID code
+  issuedAt        DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model XPLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  reason    String   // e.g. "COMPLETED_LESSON", "SOLVED_QUIZ"
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model LevelSystem {
+  id          String   @id @default(uuid())
+  level       Int      @unique
+  xpThreshold Int      // XP threshold required to reach level
+  title       String   // e.g. "DSA Initiate", "Algorithm Overlord"
+  createdAt   DateTime @default(now())
+}
+
+enum DegreeTrack {
+  BS_DATA_SCIENCE
+  BS_ELECTRONIC_SYSTEMS
+}
+
+model UserSelectedSubject {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  selectedAt DateTime @default(now())
+
+  @@unique([userId, subjectId])
+  @@index([userId])
+  @@index([subjectId])
+}
+
+enum EventType {
+  LIVE_CLASS
+  ASSIGNMENT
+  QUIZ
+  EXAM
+  NOTICE
+}
+
+model AcademicEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  startTime   DateTime
+  endTime     DateTime
+  eventType   EventType
+  priority    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  createdAt   DateTime @default(now())
+
+  @@index([subjectId])
+  @@index([startTime])
+}
+
+// ── EXTENSIBLE REALTIME CHAT & STUDY ROOM MODELS ──────────────
+
+enum RoomType {
+  SUBJECT
+  PROJECT
+  COMMUNITY
+  PRIVATE_GROUP
+}
+
+enum ParticipantRole {
+  MEMBER
+  MODERATOR
+  OWNER
+}
+
+model Conversation {
+  id              String                    @id @default(uuid())
+  isGroup         Boolean                   @default(false)
+  name            String?                   // Optional group chat/study room name
+  
+  // Study Room metadata extensions
+  roomDescription String?
+  roomType        RoomType?                 @default(PRIVATE_GROUP)
+  roomAvatar      String?
+  ownerId         String?
+  owner           User?                     @relation("ConversationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  subjectId       String?
+  subject         Subject?                  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  participants    ConversationParticipant[]
+  messages        Message[]
+  pinnedResources PinnedResource[]
+  polls           RoomPoll[]
+  sessions        StudySession[]
+  aiSummary       AiSummary?
+  
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([updatedAt(sort: Desc)])
+}
+
+model ConversationParticipant {
+  id             String          @id @default(uuid())
+  conversationId String
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           ParticipantRole @default(MEMBER)
+  joinedAt       DateTime        @default(now())
+
+  @@unique([conversationId, userId]) // User can only join a conversation once!
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String       // Message body
+  seen           Boolean      @default(false) // Unread badge tracker
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model PinnedResource {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  title          String
+  url            String?
+  description    String?
+  type           String       // e.g. "PYQ", "NOTE", "LINK", "ANNOUNCEMENT"
+  createdById    String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+model RoomPoll {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  question       String
+  options        String       // JSON array of strings
+  votes          RoomPollVote[]
+  createdById    String
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime?
+
+  @@index([conversationId])
+}
+
+model RoomPollVote {
+  id          String   @id @default(uuid())
+  pollId      String
+  poll        RoomPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  optionIndex Int
+  createdAt   DateTime @default(now())
+
+  @@unique([pollId, userId])
+}
+
+model StudySession {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  startTime      DateTime
+  endTime        DateTime
+  createdById    String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+// ── UNIFIED CAMPUS NOTIFICATION & ACTIVITY SYSTEM MODELS ──
+
+enum NotificationType {
+  DIRECT_MESSAGE
+  ROOM_MESSAGE
+  ROOM_MENTION
+  ASSIGNMENT_DEADLINE
+  QUIZ_REMINDER
+  STUDY_SESSION
+  POLL_CREATED
+  ACHIEVEMENT_UNLOCK
+  LEADERBOARD_UPDATE
+  SYSTEM_NOTICE
+}
+
+enum NotificationPriority {
+  CRITICAL
+  IMPORTANT
+  NORMAL
+  SOCIAL
+}
+
+model Notification {
+  id          String               @id @default(uuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  description String
+  link        String?              // Redirection target link (e.g. "/rooms/[id]" or "/quiz/[id]")
+  read        Boolean              @default(false)
+  priority    NotificationPriority @default(NORMAL)
+  metadata    String?              // JSON string for extra contextual metadata
+  createdAt   DateTime             @default(now())
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model NotificationPreference {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muteDMs                Boolean  @default(false)
+  muteRoomMessages       Boolean  @default(false)
+  muteSocialAlerts       Boolean  @default(false)
+  muteLeaderboardUpdates Boolean  @default(false)
+  muteReminders          Boolean  @default(false)
+  mutedRoomIds           String   @default("[]") // JSON array of muted room IDs
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model AiConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  messages  String   // JSON string of conversation: { role: "user" | "assistant", content: string, createdAt: string }[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model AiRecommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // "QUIZ" | "SESSION" | "PYQ" | "ROOM"
+  title       String
+  description String
+  itemId      String?  // Optional target relation key (e.g. quizId, roomId)
+  reason      String   // Why recommended
+  isDismissed Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AiSummary {
+  id             String       @id @default(uuid())
+  conversationId String       @unique
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  content        String       // Summary markdown text
+  keyTakeaways   String       // JSON string of string[] takeaways
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model AiCache {
+  id         String   @id @default(uuid())
+  promptHash String   @unique
+  response   String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([promptHash])
+}
+
+enum IngestionStatus {
+  PENDING
+  PARSING
+  EXTRACTING
+  CLASSIFYING
+  DRAFT
+  PUBLISHED
+  FAILED
+}
+
+model IngestionJob {
+  id              String          @id @default(uuid())
+  fileName        String
+  fileUrl         String
+  fileKey         String
+  fileSize        Int
+  mimeType        String
+  status          IngestionStatus @default(PENDING)
+  error           String?         @db.Text
+  extractedText   String?         @db.Text
+  parsingStages   String?         @db.Text // JSON string: list of { stage: string, status: string, timestamp: string }
+  retryCount      Int             @default(0)
+  
+  // Detection metadata
+  detectedTrack   DegreeTrack?
+  detectedSubject String?
+  detectedLevel   String?
+  
+  // Relations
+  subjectId       String?
+  subject         Subject?        @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  uploadedById    String
+  uploadedBy      User            @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  
+  // Draft quiz payload
+  draftQuizTitle  String?
+  draftQuizDesc   String?
+  draftQuestions  String?         @db.Text // JSON string: array of questions: { questionText: string, options: { label: string, text: string }[], correctAnswer: string, explanation: string, difficulty: string, tags: string[] }
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([subjectId])
+  @@index([uploadedById])
+}
+
 

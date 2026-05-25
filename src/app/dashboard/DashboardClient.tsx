@@ -12,8 +12,10 @@ import {
   Sparkles, 
   Activity, 
   History,
-  FileSpreadsheet
+  CheckCircle,
+  Trophy
 } from "lucide-react";
+import { claimMissionRewardAction } from "@/services/gamificationActions";
 
 interface Subject {
   id: string;
@@ -58,6 +60,21 @@ interface Analytics {
   updatedAt: string;
 }
 
+interface Mission {
+  id: string;
+  currentCount: number;
+  completed: boolean;
+  claimed: boolean;
+  mission: {
+    id: string;
+    title: string;
+    description: string;
+    xpReward: number;
+    targetCount: number;
+    type: string;
+  };
+}
+
 interface DashboardClientProps {
   user: {
     id: string;
@@ -72,6 +89,7 @@ interface DashboardClientProps {
   quizzes: Quiz[];
   attempts: Attempt[];
   analytics: Analytics | null;
+  dailyMissions: Mission[];
 }
 
 export default function DashboardClient({
@@ -80,11 +98,36 @@ export default function DashboardClient({
   quizzes,
   attempts,
   analytics,
+  dailyMissions,
 }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState<"quizzes" | "analytics" | "attempts">("quizzes");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("ALL");
+
+  const [missions, setMissions] = useState(dailyMissions);
+  const [localXp, setLocalXp] = useState(user.xp);
+  const [claimLoading, setClaimLoading] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleClaimReward = async (userMissionId: string, xpReward: number) => {
+    try {
+      setClaimLoading(userMissionId);
+      const res = await claimMissionRewardAction(user.id, userMissionId);
+      if (res.success) {
+        setMissions(prev => prev.map(m => m.id === userMissionId ? { ...m, claimed: true } : m));
+        setLocalXp(prev => prev + xpReward);
+        setToastMessage(`🎉 Claimed +${xpReward} XP Reward! Level up status check complete.`);
+        setTimeout(() => setToastMessage(null), 4000);
+      } else {
+        alert(res.error || "Failed to claim reward.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setClaimLoading(null);
+    }
+  };
 
   // Filter quizzes
   const filteredQuizzes = quizzes.filter((quiz) => {
@@ -123,7 +166,7 @@ export default function DashboardClient({
         <div className="glass-panel p-5 rounded-2xl relative overflow-hidden flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Experience</p>
-            <p className="text-2xl sm:text-3xl font-extrabold text-indigo-400">⭐ {totalXp} XP</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-indigo-400">⭐ {localXp} XP</p>
           </div>
           <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
             <Award className="h-5.5 w-5.5" />
@@ -152,6 +195,95 @@ export default function DashboardClient({
           </div>
         </div>
 
+      </div>
+
+      {/* TOAST MESSAGE CELEBRATION */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-[#09090b] border-2 border-emerald-500/30 text-emerald-400 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
+          <span className="text-lg">🏆</span>
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* DAILY MISSIONS HUB WIDGET */}
+      <div className="glass-panel p-6 rounded-2xl border border-white/5 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              <span>🎯 Daily Quests Hub</span>
+            </h3>
+            <p className="text-xs text-gray-400 mt-0.5">Complete daily quests, claim experience rewards, and climb divisions.</p>
+          </div>
+          <a
+            href={`/profile/${user.id}`}
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/10"
+          >
+            <span>Showcase Achievements →</span>
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {missions.map((m) => {
+            const pct = Math.min(100, Math.round((m.currentCount / m.mission.targetCount) * 100));
+            const completed = m.completed || m.currentCount >= m.mission.targetCount;
+            const claimed = m.claimed;
+            
+            return (
+              <div key={m.id} className="border border-white/5 bg-[#09090b]/40 p-4 rounded-xl flex flex-col justify-between hover:border-white/10 transition-colors">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded font-bold uppercase">
+                      {m.mission.type} Quest
+                    </span>
+                    <span className="text-gray-500 font-semibold">{m.currentCount} / {m.mission.targetCount}</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm line-clamp-1">{m.mission.title}</h4>
+                    <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">{m.mission.description}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-3">
+                  <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                    <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${pct}%` }}></div>
+                  </div>
+
+                  {claimed ? (
+                    <button
+                      disabled
+                      className="w-full py-1.5 bg-emerald-500/5 text-emerald-500 border border-emerald-500/10 rounded-lg text-xs font-bold flex items-center justify-center gap-1"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      <span>Claimed (+{m.mission.xpReward} XP)</span>
+                    </button>
+                  ) : completed ? (
+                    <button
+                      onClick={() => handleClaimReward(m.id, m.mission.xpReward)}
+                      disabled={claimLoading === m.id}
+                      className="w-full py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold transition-all shadow shadow-purple-900/30 flex items-center justify-center gap-1.5"
+                    >
+                      {claimLoading === m.id ? (
+                        <span>Claiming...</span>
+                      ) : (
+                        <>
+                          <span>⚡ Claim +{m.mission.xpReward} XP</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full py-1.5 bg-white/5 text-gray-500 rounded-lg text-xs font-bold"
+                    >
+                      In Progress ({pct}%)
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* 2. NAVIGATION TABS */}

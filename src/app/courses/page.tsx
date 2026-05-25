@@ -1,11 +1,17 @@
 import { getCoursesList, getStudentEnrollments } from "@/services/courseService";
 import { getDbUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import React from "react";
 
 export const dynamic = "force-dynamic";
 
 export default async function StudentCoursesPage() {
   const dbUser = await getDbUser();
+  
+  if (dbUser && !dbUser.onboardingCompleted) {
+    redirect("/onboarding");
+  }
+
   const allCourses = await getCoursesList();
 
   let enrolledCourses: any[] = [];

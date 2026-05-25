@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getDbUser } from "@/lib/auth";
 import { SubmissionStatus, VideoType } from "@prisma/client";
+import { earnXp, updateMissionProgress } from "./gamificationService";
 
 // ─── STUDENT COURSE SEARCH & ENROLLMENT ──────────────────────────────────────
 export async function getCoursesList() {
@@ -286,6 +287,10 @@ export async function saveLessonProgress(lessonId: string, userId: string, watch
 
   // Self-healing: Check if this completion marks the overall course as finished
   if (completed) {
+    // Award XP and update daily missions progress
+    await earnXp(userId, 50, `COMPLETED_LESSON:${lessonId}`);
+    await updateMissionProgress(userId, "LESSON", 1);
+
     const course = record.lesson.module.course;
     const lessonIds = course.modules.flatMap(m => m.lessons.map(l => l.id));
     const completedCount = await db.lessonProgress.count({

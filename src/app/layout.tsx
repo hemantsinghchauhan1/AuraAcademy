@@ -5,6 +5,10 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { getDbUser } from "@/lib/auth";
 import HeaderAuth from "./HeaderAuth";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { db } from "@/lib/db";
+import NotificationBellClient from "./NotificationBellClient";
+import AiCopilotPanelClient from "./AiCopilotPanelClient";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,9 +21,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AuraAcademy — Student Ecosystem",
+  title: "AuraAcademy — The Ultimate Student Learning Ecosystem",
   description:
-    "A premium student workspace for interactive quizzes, performance analytics, and community learning.",
+    "A premium student workspace featuring structured syllabus classrooms, timed practice quizzes, dynamic topic weakness metrics, peer forum help, global leaderboards, and downloadable vector certificates.",
+  openGraph: {
+    title: "AuraAcademy — The Ultimate Student Learning Ecosystem",
+    description:
+      "Solve timed quizzes, diagnosis topic weaknesses, maintain daily study streaks, and earn verified SVG certificates.",
+    url: "https://auraacademy.vercel.app",
+    siteName: "AuraAcademy",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AuraAcademy — The Ultimate Student Learning Ecosystem",
+    description:
+      "Solve timed quizzes, diagnosis topic weaknesses, maintain daily study streaks, and earn verified SVG certificates.",
+    creator: "@AuraAcademy",
+  },
 };
 
 export default async function RootLayout({
@@ -31,6 +51,13 @@ export default async function RootLayout({
   const dbUser = await getDbUser();
   const streak = (dbUser as any)?.profile?.streak ?? 0;
   const xp = (dbUser as any)?.profile?.xp ?? 0;
+
+  let unreadNotificationsCount = 0;
+  if (dbUser) {
+    unreadNotificationsCount = await db.notification.count({
+      where: { userId: dbUser.id, read: false },
+    });
+  }
 
   return (
     <ClerkProvider
@@ -70,22 +97,36 @@ export default async function RootLayout({
                 </div>
 
                 {/* Navigation Links */}
-                <nav className="hidden md:flex space-x-8">
+                <nav className="hidden md:flex space-x-6">
                   <a href="/" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Home</a>
                   <a href="/dashboard" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Dashboard</a>
                   <a href="/quiz" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Quizzes</a>
+                  <a href="/rooms" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Study Rooms</a>
+                  <a href="/messages" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Messages</a>
                   <a href="/leaderboard" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Leaderboard</a>
+                  <a href="/students" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Discover</a>
                 </nav>
 
                 {/* Auth Controls — Client Component (uses SignedIn/SignedOut/UserButton) */}
-                <HeaderAuth streak={streak} xp={xp} />
+                <div className="flex items-center space-x-4">
+                  {dbUser && (
+                    <NotificationBellClient userId={dbUser.id} initialUnreadCount={unreadNotificationsCount} />
+                  )}
+                  <HeaderAuth streak={streak} xp={xp} />
+                </div>
 
               </div>
             </div>
           </header>
 
           {/* Core Main Layout */}
-          <main className="flex-1 flex flex-col">{children}</main>
+          <main className="flex-1 flex flex-col">
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </main>
+
+          {dbUser && <AiCopilotPanelClient userId={dbUser.id} />}
 
           {/* Glass Footer */}
           <footer className="bg-[#09090b]/80 border-t border-white/5 py-8 mt-auto">

@@ -314,6 +314,178 @@ export default async function Home() {
             </div>
           </div>
 
+          {/* Feature 4: Structured LMS Classrooms */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7 glass-panel rounded-2xl p-6 relative overflow-hidden border border-white/5 group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-blue-400 font-bold uppercase tracking-wider">Advanced Data Structures</span>
+                  <span className="text-gray-500 font-semibold">8 / 10 Lessons Finished</span>
+                </div>
+                <h4 className="text-base font-bold text-white">Module 3: Non-Linear Binary Tree Graphs</h4>
+                
+                <div className="space-y-2.5">
+                  <div className="p-3 bg-[#0c0a1c] border border-blue-500/10 rounded-lg flex items-center justify-between text-xs">
+                    <span className="text-white font-medium">🎬 Lecture 3.1: Balanced Red-Black Rotations</span>
+                    <span className="text-emerald-400 font-bold">Completed ✓</span>
+                  </div>
+                  <div className="p-3 bg-[#0c0a1c] border border-blue-500/10 rounded-lg flex items-center justify-between text-xs">
+                    <span className="text-white font-medium">📁 slide slides resource downloads</span>
+                    <span className="text-gray-500">Available ↓</span>
+                  </div>
+                  <div className="p-3 bg-[#0c0a1c] border border-blue-500/10 rounded-lg flex items-center justify-between text-xs">
+                    <span className="text-white font-medium">✏ Task Assignment dropbox Uploads</span>
+                    <span className="text-indigo-400 font-bold">Feedback Issued</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 space-y-4">
+              <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                Structured Syllabus Classrooms
+              </h3>
+              <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+                Connect your syllabus to interactive player rooms. Track curriculum progress across modules, play dynamic Loom or YouTube video lectures, download referenced PDFs, and submit homework slides into secure feedback evaluation droboxes.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-center space-x-2">
+                  <span className="text-blue-400">✔</span>
+                  <span>Syllabus chapter progress tracking</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-blue-400">✔</span>
+                  <span>Polymorphic timeline video player</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-blue-400">✔</span>
+                  <span>Homework submission evaluation boards</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Feature 5: Gamified Quest Hubs & Podiums */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-5 space-y-4">
+              <div className="h-10 w-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500">
+                <Target className="h-5 w-5" />
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                Gamified Quest Hubs & Podiums
+              </h3>
+              <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+                Learn like a game. Maintain daily activity study streaks to multiplier your scores, progress across experience divisions (Initiate to Archmage), check daily quest resets, and climb rankings comparisons on dynamic podiated platforms.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-center space-x-2">
+                  <span className="text-yellow-400">✔</span>
+                  <span>Daily quest missions resets</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-yellow-400">✔</span>
+                  <span>Trophy cases & custom badges showcase</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-yellow-400">✔</span>
+                  <span>Global crown podium standups comparisons</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="lg:col-span-7 glass-panel rounded-2xl p-6 relative overflow-hidden border border-white/5">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+              
+              <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/5">
+                <div>
+                  <h4 className="text-base font-bold text-white flex items-center gap-1">
+                    <span>👑 Global Scoreboard Top 3</span>
+                  </h4>
+                  <p className="text-xs text-gray-500">Division: Gold League</p>
+                </div>
+                <span className="bg-yellow-500/10 text-yellow-500 px-2 py-0.5 rounded text-xs font-bold font-mono">
+                  Weekly
+                </span>
+              </div>
+
+              {/* Physical Podium Mockup */}
+              <div className="flex items-end justify-center gap-4 pt-6 h-36">
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-xs font-bold text-white">ScholarB</span>
+                  <p className="text-[10px] text-gray-500">4,800 XP</p>
+                  <div className="w-full h-12 bg-indigo-500/10 border border-indigo-500/20 rounded-t-lg mt-2 flex items-center justify-center font-bold text-gray-400">2</div>
+                </div>
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-xs font-bold text-white">🏆 ScholarA</span>
+                  <p className="text-[10px] text-gray-500">5,400 XP</p>
+                  <div className="w-full h-20 bg-purple-500/20 border border-purple-500/30 rounded-t-lg mt-2 flex items-center justify-center font-extrabold text-white">1</div>
+                </div>
+                <div className="flex flex-col items-center flex-1">
+                  <span className="text-xs font-bold text-white">ScholarC</span>
+                  <p className="text-[10px] text-gray-500">3,900 XP</p>
+                  <div className="w-full h-8 bg-blue-500/10 border border-blue-500/20 rounded-t-lg mt-2 flex items-center justify-center font-bold text-gray-400">3</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 6: Verified SVG Certificates */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7 glass-panel rounded-2xl p-6 relative overflow-hidden border border-white/5">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+              
+              <div className="border border-dashed border-emerald-500/20 p-4 rounded-xl space-y-3 relative overflow-hidden bg-[#050508]">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                    VERIFIED CREDENTIAL
+                  </span>
+                  <span className="text-gray-500 font-mono">AURA-CERT-9X2L</span>
+                </div>
+                <div>
+                  <h5 className="font-bold text-white text-sm">Computer Science Architecture</h5>
+                  <p className="text-[10px] text-gray-500">AuraAcademy Educational Board • Issued May 2026</p>
+                </div>
+                <div className="pt-2 flex justify-between items-center text-xs text-gray-400 border-t border-white/5">
+                  <span>Recipient: Student Scholar</span>
+                  <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                    <span>✓</span> Seal Verified
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 space-y-4">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Award className="h-5 w-5" />
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                Lossless SVG Dynamic Certificates
+              </h3>
+              <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
+                Earn verifiable proof of your learnings. Upon completing any full course curriculum track, AuraAcademy generates a dynamic vector high-DPI SVG certificate including verified academic seals, QR stamp codes, and unique Verification IDs.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-center space-x-2">
+                  <span className="text-emerald-400">✔</span>
+                  <span>Dynamic high-DPI SVG renderers</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-emerald-400">✔</span>
+                  <span>Secure shareable verification portals</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-emerald-400">✔</span>
+                  <span>Lossless window print layouts</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
         </div>
 
         {/* CALL TO ACTION */}

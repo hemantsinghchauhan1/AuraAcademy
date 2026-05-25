@@ -287,14 +287,12 @@ export async function submitQuizAttempt(
       // Fetch current profile to calculate streak increment
       const profile = await tx.profile.findUnique({ where: { userId } });
       const currentStreak = profile?.streak || 0;
-      const updatedXp = (profile?.xp || 0) + xpAwarded;
       const updatedStreak = currentStreak + 1;
 
-      // Update Profile (increment XP & streak)
+      // Update Profile streak
       await tx.profile.update({
         where: { userId },
         data: {
-          xp: updatedXp,
           streak: updatedStreak,
         },
       });
@@ -353,36 +351,12 @@ export async function submitQuizAttempt(
           weakTopics: JSON.stringify(weakTopicsParsed),
         },
       });
-
-      // Update Snapshotted Leaderboard
-      await tx.leaderboard.upsert({
-        where: { userId },
-        create: {
-          userId,
-          name: profile?.name || "Student",
-          xp: updatedXp,
-          streak: updatedStreak,
-          rank: 1, // Calculated below
-        },
-        update: {
-          name: profile?.name || "Student",
-          xp: updatedXp,
-          streak: updatedStreak,
-        }
-      });
-
-      // Recalculate ranks globally
-      const allStandings = await tx.leaderboard.findMany({
-        orderBy: { xp: "desc" }
-      });
-
-      for (let i = 0; i < allStandings.length; i++) {
-        await tx.leaderboard.update({
-          where: { id: allStandings[i].id },
-          data: { rank: i + 1 }
-        });
-      }
     });
+
+    // Call centralized earnXp and update mission progress
+    const { earnXp, updateMissionProgress } = await import("./gamificationService");
+    await earnXp(userId, xpAwarded, `COMPLETED_QUIZ:${quizId}`);
+    await updateMissionProgress(userId, "QUIZ", 1);
 
     return {
       success: true,
