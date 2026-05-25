@@ -10,7 +10,7 @@ const isProtectedRoute = createRouteMatcher([
   "/forum(.*)",
 ]);
 
-// Routes that should be accessible only to unauthenticated users
+// Routes that should redirect signed-in users away to dashboard
 const isAuthRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
@@ -22,21 +22,24 @@ const isAuthRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 
-  // If trying to access auth routes while already signed in → redirect to dashboard
+  // Signed-in user visiting auth pages → send to dashboard
   if (isAuthRoute(req) && userId) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // If trying to access protected routes while signed out → Clerk handles redirect to /sign-in
-  if (isProtectedRoute(req)) {
-    await auth.protect();
+  // Unauthenticated user visiting protected page → redirect to sign-in
+  // Manual redirect used instead of auth.protect() for Next.js 16 compatibility
+  if (isProtectedRoute(req) && !userId) {
+    const signInUrl = new URL("/sign-in", req.url);
+    signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
+    return NextResponse.redirect(signInUrl);
   }
 });
 
 export const config = {
   matcher: [
-    // Match all routes except static files and Next.js internals
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|eot)$).*)",
+    // Match everything except Next.js static assets
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|woff2?)$).*)",
     // Always run for API routes
     "/(api|trpc)(.*)",
   ],
