@@ -15,17 +15,7 @@ import {
   Brain
 } from "lucide-react";
 
-interface Question {
-  id: string;
-  quizId: string;
-  questionText: string;
-  optionA: string;
-  optionB: string;
-  optionC: string;
-  optionD: string;
-  correctAnswer: string;
-  explanation: string;
-}
+import { Question } from "@/types";
 
 interface QuizClientProps {
   userId: string;
@@ -237,13 +227,14 @@ export default function QuizClient({ userId, quiz }: QuizClientProps) {
 
               {/* Multiple choice Options list */}
               <div className="grid grid-cols-1 gap-3">
-                {["A", "B", "C", "D"].map((optKey) => {
-                  const optText = currentQ[`option${optKey}` as keyof Question] as string;
+                {currentQ.options.map((option) => {
+                  const optKey = option.label; // "A", "B", "C", "D"
+                  const optText = option.text;
                   const isSelected = selectedAnswers[currentQ.id] === optKey;
 
                   return (
                     <button
-                      key={optKey}
+                      key={option.id}
                       onClick={() => selectAnswer(currentQ.id, optKey)}
                       className={`w-full text-left p-4 rounded-xl text-sm transition-all border flex items-center space-x-4 ${
                         isSelected

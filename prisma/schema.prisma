@@ -1,22 +1,37 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model User {
   id        String    @id @default(uuid())
   email     String    @unique
   password  String    // Hashed
-  role      String    @default("STUDENT") // "STUDENT" | "INSTRUCTOR" | "ADMIN"
+  role      Role      @default(STUDENT)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   profile   Profile?
   attempts  Attempt[]
   analytics Analytics?
+
+  @@index([email])
 }
 
 model Profile {
@@ -37,7 +52,7 @@ model Subject {
   name        String   @unique
   slug        String   @unique
   description String
-  icon        String   // Lucide icon name
+  icon        String
   quizzes     Quiz[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -51,11 +66,13 @@ model Quiz {
   subject        Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   timeLimit      Int?       // In minutes
   totalQuestions Int
-  difficulty     String     @default("MEDIUM") // "EASY" | "MEDIUM" | "HARD"
+  difficulty     Difficulty @default(MEDIUM)
   questions      Question[]
   attempts       Attempt[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+
+  @@index([subjectId])
 }
 
 model Question {
@@ -63,14 +80,24 @@ model Question {
   quizId        String
   quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   questionText  String
-  optionA       String
-  optionB       String
-  optionC       String
-  optionD       String
-  correctAnswer String   // "A", "B", "C", or "D"
+  options       Option[] // Upgraded modular relational Option model
+  correctAnswer String   // Must correspond to the label of one of the Options (e.g. "A", "B", "C", "D")
   explanation   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([quizId])
+}
+
+model Option {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String   // "A", "B", "C", "D"
+  text       String   // Option text choice
+  createdAt  DateTime @default(now())
+
+  @@index([questionId])
 }
 
 model Attempt {
@@ -82,16 +109,31 @@ model Attempt {
   score          Int
   totalQuestions Int
   timeSpent      Int      // In seconds
-  answers        String   // JSON string of user answers {questionId: selectedOption}
+  answers        String   // JSON string of user answers {questionId: chosenLabel}
   completedAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([quizId])
 }
 
 model Analytics {
   id                String   @id @default(uuid())
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  weakTopics        String   // JSON string of weak topics with percentage correctness
-  overallAccuracy   Float    @default(0.0) // Percentage
+  weakTopics        String   // JSON string of weak topics with accuracy metrics
+  overallAccuracy   Float    @default(0.0)
   totalQuizzesTaken Int      @default(0)
   updatedAt         DateTime @updatedAt
+}
+
+model Leaderboard {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String
+  xp        Int      @default(0)
+  streak    Int      @default(0)
+  rank      Int
+  updatedAt DateTime @updatedAt
+
+  @@index([xp(sort: Desc)])
 }

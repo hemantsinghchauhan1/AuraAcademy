@@ -38,7 +38,13 @@ export default async function ResultPage({ searchParams }: ResultPageProps) {
       quiz: {
         include: {
           subject: true,
-          questions: true,
+          questions: {
+            include: {
+              options: {
+                orderBy: { label: "asc" }
+              }
+            }
+          },
         },
       },
     },
@@ -194,14 +200,15 @@ export default async function ResultPage({ searchParams }: ResultPageProps) {
 
                   {/* Options reviews */}
                   <div className="grid grid-cols-1 gap-2.5 mb-6">
-                    {["A", "B", "C", "D"].map((optKey) => {
-                      const optText = q[`option${optKey}` as keyof typeof q] as string;
+                    {q.options.map((option) => {
+                      const optKey = option.label; // "A", "B", "C", "D"
+                      const optText = option.text;
                       const wasChosen = chosen === optKey;
                       const isOptionCorrect = q.correctAnswer === optKey;
 
                       return (
                         <div 
-                          key={optKey} 
+                          key={option.id} 
                           className={`p-3.5 rounded-xl text-xs sm:text-sm flex items-center space-x-3 transition-all ${
                             isOptionCorrect
                               ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold"

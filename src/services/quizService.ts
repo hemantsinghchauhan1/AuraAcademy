@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-// Self-seeding mock data helper
+// Self-seeding mock data helper supporting new relational Option model
 async function ensureSeedData() {
   try {
     const subjectCount = await db.subject.count();
@@ -37,7 +37,7 @@ async function ensureSeedData() {
       },
     });
 
-    // Seed Mathematics Quizzes & Questions
+    // Seed Mathematics Quizzes & Questions with Options
     const quiz1 = await db.quiz.create({
       data: {
         title: "Linear Algebra & Vectors",
@@ -49,60 +49,77 @@ async function ensureSeedData() {
       },
     });
 
-    await db.question.createMany({
-      data: [
-        {
+    const mathQuestions = [
+      {
+        questionText: "What is the dimension of the vector space of all 3x3 symmetric matrices?",
+        correctAnswer: "B",
+        explanation: "A symmetric matrix is determined by its diagonal elements and the elements either above or below the diagonal. For a 3x3 matrix, there are 3 diagonal elements and 3 elements above. Thus, 3 + 3 = 6 dimensions.",
+        options: [
+          { label: "A", text: "9" },
+          { label: "B", text: "6" },
+          { label: "C", text: "3" },
+          { label: "D", text: "5" },
+        ]
+      },
+      {
+        questionText: "Which of the following is true for an orthogonal matrix Q?",
+        correctAnswer: "A",
+        explanation: "By definition, an orthogonal matrix Q satisfies Q^T Q = I. Multiplying both sides by Q^-1 on the right gives Q^T = Q^-1.",
+        options: [
+          { label: "A", text: "Q^T = Q^-1" },
+          { label: "B", text: "Det(Q) is always 0" },
+          { label: "C", text: "Q^T Q = 2I" },
+          { label: "D", text: "Q is always symmetric" },
+        ]
+      },
+      {
+        questionText: "If A is a 3x3 matrix with eigenvalues 1, 2, and 5, what is the determinant of A?",
+        correctAnswer: "C",
+        explanation: "The determinant of any square matrix is equal to the product of its eigenvalues. Det(A) = 1 * 2 * 5 = 10.",
+        options: [
+          { label: "A", text: "8" },
+          { label: "B", text: "15" },
+          { label: "C", text: "10" },
+          { label: "D", text: "5" },
+        ]
+      },
+      {
+        questionText: "What is the condition for a matrix to be diagonalized?",
+        correctAnswer: "C",
+        explanation: "An n x n matrix is diagonalizable if and only if it has n linearly independent eigenvectors, which form the columns of the diagonalizing matrix P.",
+        options: [
+          { label: "A", text: "It must be a symmetric matrix" },
+          { label: "B", text: "It must have distinct eigenvalues" },
+          { label: "C", text: "It must have n linearly independent eigenvectors" },
+          { label: "D", text: "Its determinant must be non-zero" },
+        ]
+      },
+      {
+        questionText: "If the determinant of a 2x2 matrix is -6, what are its eigenvalues?",
+        correctAnswer: "D",
+        explanation: "The determinant of a matrix is the product of its eigenvalues. Hence, the eigenvalues must multiply to -6, but we cannot uniquely determine them from just the determinant.",
+        options: [
+          { label: "A", text: "2 and 3" },
+          { label: "B", text: "-2 and 3" },
+          { label: "C", text: "-6 and 1" },
+          { label: "D", text: "Cannot determine, but their product must be -6" },
+        ]
+      }
+    ];
+
+    for (const q of mathQuestions) {
+      await db.question.create({
+        data: {
           quizId: quiz1.id,
-          questionText: "What is the dimension of the vector space of all 3x3 symmetric matrices?",
-          optionA: "9",
-          optionB: "6",
-          optionC: "3",
-          optionD: "5",
-          correctAnswer: "B",
-          explanation: "A symmetric matrix is determined by its diagonal elements and the elements either above or below the diagonal. For a 3x3 matrix, there are 3 diagonal elements and 3 elements above. Thus, 3 + 3 = 6 dimensions.",
-        },
-        {
-          quizId: quiz1.id,
-          questionText: "Which of the following is true for an orthogonal matrix Q?",
-          optionA: "Q^T = Q^-1",
-          optionB: "Det(Q) is always 0",
-          optionC: "Q^T Q = 2I",
-          optionD: "Q is always symmetric",
-          correctAnswer: "A",
-          explanation: "By definition, an orthogonal matrix Q satisfies Q^T Q = I. Multiplying both sides by Q^-1 on the right gives Q^T = Q^-1.",
-        },
-        {
-          quizId: quiz1.id,
-          questionText: "If A is a 3x3 matrix with eigenvalues 1, 2, and 5, what is the determinant of A?",
-          optionA: "8",
-          optionB: "15",
-          optionC: "10",
-          optionD: "5",
-          correctAnswer: "C",
-          explanation: "The determinant of any square matrix is equal to the product of its eigenvalues. Det(A) = 1 * 2 * 5 = 10.",
-        },
-        {
-          quizId: quiz1.id,
-          questionText: "What is the condition for a matrix to be diagonalized?",
-          optionA: "It must be a symmetric matrix",
-          optionB: "It must have distinct eigenvalues",
-          optionC: "It must have n linearly independent eigenvectors",
-          optionD: "Its determinant must be non-zero",
-          correctAnswer: "C",
-          explanation: "An n x n matrix is diagonalizable if and only if it has n linearly independent eigenvectors, which form the columns of the diagonalizing matrix P.",
-        },
-        {
-          quizId: quiz1.id,
-          questionText: "If the determinant of a 2x2 matrix is -6, what are its eigenvalues?",
-          optionA: "2 and 3",
-          optionB: "-2 and 3",
-          optionC: "-6 and 1",
-          optionD: "Cannot determine, but their product must be -6",
-          correctAnswer: "D",
-          explanation: "The determinant of a matrix is the product of its eigenvalues. Hence, the eigenvalues must multiply to -6, but we cannot uniquely determine them from just the determinant.",
-        },
-      ],
-    });
+          questionText: q.questionText,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          options: {
+            create: q.options
+          }
+        }
+      });
+    }
 
     // Seed CS Quizzes & Questions
     const quiz2 = await db.quiz.create({
@@ -116,50 +133,66 @@ async function ensureSeedData() {
       },
     });
 
-    await db.question.createMany({
-      data: [
-        {
+    const csQuestions = [
+      {
+        questionText: "Which architecture pattern uses event-sourcing and commands/queries separation?",
+        correctAnswer: "A",
+        explanation: "CQRS stands for Command Query Responsibility Segregation. It separates read and update operations for a data store, often integrated with Event Sourcing to audit historical state changes.",
+        options: [
+          { label: "A", text: "CQRS" },
+          { label: "B", text: "MVC" },
+          { label: "C", text: "Layered Architecture" },
+          { label: "D", text: "Monolithic" },
+        ]
+      },
+      {
+        questionText: "In distributed systems, what does the CAP Theorem state you must trade off?",
+        correctAnswer: "B",
+        explanation: "CAP Theorem states that a distributed data store can simultaneously provide at most two of the three guarantees: Consistency, Availability, and Partition Tolerance.",
+        options: [
+          { label: "A", text: "Capacity, Accuracy, and Speed" },
+          { label: "B", text: "Consistency, Availability, and Partition Tolerance" },
+          { label: "C", text: "Complexity, Adaptability, and Portability" },
+          { label: "D", text: "Caching, Asynchrony, and Parallelism" },
+        ]
+      },
+      {
+        questionText: "What is the primary role of a circuit breaker pattern in microservices?",
+        correctAnswer: "B",
+        explanation: "A Circuit Breaker detects service degradation and stops cascading calls to failing dependencies, immediately returning a fallback error instead of exhausting server threads.",
+        options: [
+          { label: "A", text: "To encrypt communications between microservices" },
+          { label: "B", text: "To prevent cascading failures across service dependencies" },
+          { label: "C", text: "To balance network load evenly between containers" },
+          { label: "D", text: "To compress large file transfers over HTTP" },
+        ]
+      },
+      {
+        questionText: "Which caching strategy writes data to both the cache and database simultaneously?",
+        correctAnswer: "C",
+        explanation: "Write-Through updates both the cache and persistent store at the same time, preventing stale cache anomalies at the cost of higher write latency.",
+        options: [
+          { label: "A", text: "Write-Around" },
+          { label: "B", text: "Write-Back" },
+          { label: "C", text: "Write-Through" },
+          { label: "D", text: "Cache-Aside" },
+        ]
+      }
+    ];
+
+    for (const q of csQuestions) {
+      await db.question.create({
+        data: {
           quizId: quiz2.id,
-          questionText: "Which architecture pattern uses event-sourcing and commands/queries separation?",
-          optionA: "CQRS",
-          optionB: "MVC",
-          optionC: "Layered Architecture",
-          optionD: "Monolithic",
-          correctAnswer: "A",
-          explanation: "CQRS stands for Command Query Responsibility Segregation. It separates read and update operations for a data store, often integrated with Event Sourcing to audit historical state changes.",
-        },
-        {
-          quizId: quiz2.id,
-          questionText: "In distributed systems, what does the CAP Theorem state you must trade off?",
-          optionA: "Capacity, Accuracy, and Speed",
-          optionB: "Consistency, Availability, and Partition Tolerance",
-          optionC: "Complexity, Adaptability, and Portability",
-          optionD: "Caching, Asynchrony, and Parallelism",
-          correctAnswer: "B",
-          explanation: "CAP Theorem states that a distributed data store can simultaneously provide at most two of the three guarantees: Consistency, Availability, and Partition Tolerance.",
-        },
-        {
-          quizId: quiz2.id,
-          questionText: "What is the primary role of a circuit breaker pattern in microservices?",
-          optionA: "To encrypt communications between microservices",
-          optionB: "To prevent cascading failures across service dependencies",
-          optionC: "To balance network load evenly between containers",
-          optionD: "To compress large file transfers over HTTP",
-          correctAnswer: "B",
-          explanation: "A Circuit Breaker detects service degradation and stops cascading calls to failing dependencies, immediately returning a fallback error instead of exhausting server threads.",
-        },
-        {
-          quizId: quiz2.id,
-          questionText: "Which caching strategy writes data to both the cache and database simultaneously?",
-          optionA: "Write-Around",
-          optionB: "Write-Back",
-          optionC: "Write-Through",
-          optionD: "Cache-Aside",
-          correctAnswer: "C",
-          explanation: "Write-Through updates both the cache and persistent store at the same time, preventing stale cache anomalies at the cost of higher write latency.",
-        },
-      ],
-    });
+          questionText: q.questionText,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          options: {
+            create: q.options
+          }
+        }
+      });
+    }
 
   } catch (error) {
     console.error("Seeding Error:", error);
@@ -205,7 +238,13 @@ export async function getQuizDetails(quizId: string) {
       where: { id: quizId },
       include: {
         subject: true,
-        questions: true,
+        questions: {
+          include: {
+            options: {
+              orderBy: { label: "asc" }
+            }
+          }
+        },
       },
     });
   } catch (e) {
@@ -248,13 +287,15 @@ export async function submitQuizAttempt(
       // Fetch current profile to calculate streak increment
       const profile = await tx.profile.findUnique({ where: { userId } });
       const currentStreak = profile?.streak || 0;
+      const updatedXp = (profile?.xp || 0) + xpAwarded;
+      const updatedStreak = currentStreak + 1;
 
       // Update Profile (increment XP & streak)
       await tx.profile.update({
         where: { userId },
         data: {
-          xp: { increment: xpAwarded },
-          streak: currentStreak + 1, // Add to streak!
+          xp: updatedXp,
+          streak: updatedStreak,
         },
       });
 
@@ -277,7 +318,6 @@ export async function submitQuizAttempt(
         weakTopicsParsed = [];
       }
 
-      // Check if accuracy on this quiz is weak (say, below 70%)
       if (accuracy < 70) {
         const topicIndex = weakTopicsParsed.findIndex((t: any) => t.topic === quiz.subject.name);
         if (topicIndex > -1) {
@@ -293,13 +333,11 @@ export async function submitQuizAttempt(
           });
         }
       } else {
-        // If accuracy is good, check if we can remove/mitigate this topic from weak topics
         const topicIndex = weakTopicsParsed.findIndex((t: any) => t.topic === quiz.subject.name);
         if (topicIndex > -1) {
           const updatedAccuracy = Math.round((weakTopicsParsed[topicIndex].accuracy + accuracy) / 2);
           if (updatedAccuracy >= 75) {
-            // No longer weak! Remove it
-            weakTopicsParsed.splice(topicIndex, 1);
+            weakTopicsParsed.splice(topicIndex, 1); // No longer weak!
           } else {
             weakTopicsParsed[topicIndex].accuracy = updatedAccuracy;
             weakTopicsParsed[topicIndex].questionsSolved += quiz.totalQuestions;
@@ -315,6 +353,35 @@ export async function submitQuizAttempt(
           weakTopics: JSON.stringify(weakTopicsParsed),
         },
       });
+
+      // Update Snapshotted Leaderboard
+      await tx.leaderboard.upsert({
+        where: { userId },
+        create: {
+          userId,
+          name: profile?.name || "Student",
+          xp: updatedXp,
+          streak: updatedStreak,
+          rank: 1, // Calculated below
+        },
+        update: {
+          name: profile?.name || "Student",
+          xp: updatedXp,
+          streak: updatedStreak,
+        }
+      });
+
+      // Recalculate ranks globally
+      const allStandings = await tx.leaderboard.findMany({
+        orderBy: { xp: "desc" }
+      });
+
+      for (let i = 0; i < allStandings.length; i++) {
+        await tx.leaderboard.update({
+          where: { id: allStandings[i].id },
+          data: { rank: i + 1 }
+        });
+      }
     });
 
     return {
@@ -366,6 +433,18 @@ export async function getUserAttempts(userId: string) {
     });
   } catch (e) {
     console.error("Failed to fetch user attempts:", e);
+    return [];
+  }
+}
+
+export async function getLeaderboard() {
+  try {
+    return await db.leaderboard.findMany({
+      orderBy: { rank: "asc" },
+      take: 20, // Load top 20 students
+    });
+  } catch (e) {
+    console.error("Failed to fetch global leaderboard:", e);
     return [];
   }
 }

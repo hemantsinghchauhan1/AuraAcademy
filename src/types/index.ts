@@ -42,14 +42,19 @@ export interface Quiz {
   createdAt: string;
 }
 
+export interface Option {
+  id: string;
+  questionId: string;
+  label: string; // "A", "B", "C", "D"
+  text: string;
+  createdAt?: string;
+}
+
 export interface Question {
   id: string;
   quizId: string;
   questionText: string;
-  optionA: string;
-  optionB: string;
-  optionC: string;
-  optionD: string;
+  options: Option[]; // Upgraded relational option mapping
   correctAnswer: string; // A, B, C, D
   explanation: string;
 }
@@ -62,7 +67,7 @@ export interface Attempt {
   score: number;
   totalQuestions: number;
   timeSpent: number; // seconds
-  answers: Record<string, string>; // questionId -> chosenOption
+  answers: Record<string, string>; // questionId -> chosenLabel
   completedAt: string;
 }
 
@@ -78,5 +83,15 @@ export interface AnalyticsSummary {
   weakTopics: WeakTopic[];
   overallAccuracy: number;
   totalQuizzesTaken: number;
+  updatedAt: string;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  userId: string;
+  name: string;
+  xp: number;
+  streak: number;
+  rank: number;
   updatedAt: string;
 }
