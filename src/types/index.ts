@@ -1,4 +1,4 @@
-export type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
+export type Role = "STUDENT" | "MODERATOR" | "ADMIN";
 export type Difficulty = "EASY" | "MEDIUM" | "HARD";
 
 export interface User {

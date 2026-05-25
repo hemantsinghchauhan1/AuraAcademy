@@ -10,7 +10,7 @@ generator client {
 
 enum Role {
   STUDENT
-  INSTRUCTOR
+  MODERATOR
   ADMIN
 }
 
@@ -21,19 +21,24 @@ enum Difficulty {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  clerkId   String?   @unique   // Clerk user ID (null for legacy JWT users)
-  email     String    @unique
-  password  String?   // Hashed — optional (Clerk users have no local password)
-  role      Role      @default(STUDENT)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  profile   Profile?
-  attempts  Attempt[]
-  analytics Analytics?
-  posts     Post[]    // Forum relations
-  comments  Comment[]
-  votes     Vote[]
+  id              String          @id @default(uuid())
+  clerkId         String?         @unique   // Clerk user ID (null for legacy JWT users)
+  email           String          @unique
+  password        String?         // Hashed — optional (Clerk users have no local password)
+  role            Role            @default(STUDENT)
+  isSuspended     Boolean         @default(false) // Suspended/banned flag
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  profile         Profile?
+  attempts        Attempt[]
+  analytics       Analytics?
+  posts           Post[]          // Forum relations
+  comments        Comment[]
+  votes           Vote[]
+  reportsCreated  Report[]        @relation("Reporter")
+  moderatorLogs   ModerationLog[] @relation("ModeratorRelation")
+  adminActions    AdminAction[]   @relation("AdminRelation")
+  uploadedFiles   UploadedFile[]
 
   @@index([email])
   @@index([clerkId])
@@ -53,14 +58,15 @@ model Profile {
 }
 
 model Subject {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  slug        String   @unique
-  description String
-  icon        String
-  quizzes     Quiz[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String         @id @default(uuid())
+  name          String         @unique
+  slug          String         @unique
+  description   String
+  icon          String
+  quizzes       Quiz[]
+  uploadedFiles UploadedFile[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Quiz {
@@ -85,7 +91,7 @@ model Question {
   quizId        String
   quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   questionText  String
-  options       Option[] // Upgraded relational Option model
+  options       Option[] // Relational Option model
   correctAnswer String   // Must correspond to the label of one of the Options (e.g. "A", "B", "C", "D")
   explanation   String
   createdAt     DateTime @default(now())
@@ -168,6 +174,7 @@ model Post {
   upvotes     Int       @default(0)
   comments    Comment[]
   votes       Vote[]
+  reports     Report[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -182,6 +189,7 @@ model Comment {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   text      String   // Comment text content
+  reports   Report[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -201,3 +209,123 @@ model Vote {
   @@unique([userId, postId]) // Compound unique key to prevent double-voting!
   @@index([postId])
 }
+
+// --- PHASE 6: MODERATION & CMS MODELS ---
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  OFF_TOPIC
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reason      ReportReason
+  details     String?      // Optional details
+  status      ReportStatus @default(PENDING)
+  
+  // Target relations (reported post or reported comment)
+  postId      String?
+  post        Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId   String?
+  comment     Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  // Reporter relation
+  reporterId  String
+  reporter    User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([status])
+  @@index([reporterId])
+  @@index([postId])
+  @@index([commentId])
+}
+
+enum ModerationAction {
+  REMOVE_POST
+  REMOVE_COMMENT
+  SUSPEND_USER
+  UNSUSPEND_USER
+  RESOLVE_REPORT
+}
+
+model ModerationLog {
+  id          String           @id @default(uuid())
+  action      ModerationAction
+  moderatorId String
+  moderator   User             @relation("ModeratorRelation", fields: [moderatorId], references: [id], onDelete: Cascade)
+  targetId    String           // ID of the user, post, or comment that was acted on
+  reason      String
+  createdAt   DateTime         @default(now())
+
+  @@index([moderatorId])
+  @@index([action])
+}
+
+enum AdminActionType {
+  CREATE_QUIZ
+  EDIT_QUIZ
+  DELETE_QUIZ
+  CREATE_SUBJECT
+  UPDATE_ROLE
+}
+
+model AdminAction {
+  id        String          @id @default(uuid())
+  action    AdminActionType
+  adminId   String
+  admin     User            @relation("AdminRelation", fields: [adminId], references: [id], onDelete: Cascade)
+  details   String          // Summary of the admin action
+  createdAt DateTime        @default(now())
+
+  @@index([adminId])
+}
+
+model UploadedFile {
+  id           String        @id @default(uuid())
+  name         String
+  url          String
+  key          String
+  size         Int
+  mimeType     String
+  
+  // Category relation
+  categoryId   String
+  category     PaperCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Tags
+  semester     Int?
+  subjectId    String?
+  subject      Subject?      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  // Uploader relation
+  uploadedById String
+  uploadedBy   User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([categoryId])
+  @@index([subjectId])
+  @@index([uploadedById])
+}
+
+model PaperCategory {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  slug        String         @unique
+  description String?
+  files       UploadedFile[]
+  createdAt   DateTime       @default(now())
+}
+

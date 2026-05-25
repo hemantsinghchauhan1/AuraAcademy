@@ -8,6 +8,7 @@ const isProtectedRoute = createRouteMatcher([
   "/result(.*)",
   "/leaderboard(.*)",
   "/forum(.*)",
+  "/admin(.*)",
 ]);
 
 // Routes that should redirect signed-in users away to dashboard
