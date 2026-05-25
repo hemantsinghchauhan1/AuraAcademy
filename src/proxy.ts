@@ -1,41 +1,25 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const sessionToken = request.cookies.get("student_session")?.value;
+// Define protected routes — Clerk will enforce authentication on these
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/quiz(.*)",
+  "/result(.*)",
+  "/leaderboard(.*)",
+  "/forum(.*)",
+]);
 
-  const isProtectedRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/quiz") ||
-    pathname.startsWith("/result") ||
-    pathname.startsWith("/leaderboard");
-
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");
-
-  // Redirect to login if accessing protected route without session
-  if (isProtectedRoute && !sessionToken) {
-    const url = new URL("/login", request.url);
-    // Keep track of the original page to redirect back after login
-    url.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(url);
+// Next.js 16 uses "proxy" export instead of "middleware"
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect(); // Redirects to /sign-in if not authenticated
   }
-
-  // Redirect to dashboard if logged in and trying to access auth pages
-  if (isAuthRoute && sessionToken) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/quiz/:path*",
-    "/result/:path*",
-    "/leaderboard/:path*",
-    "/login",
-    "/register",
+    // Run middleware on all routes except static files and Next internals
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
   ],
 };

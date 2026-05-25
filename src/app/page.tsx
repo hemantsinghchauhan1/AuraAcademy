@@ -12,10 +12,10 @@ import {
   Target,
   Sparkles
 } from "lucide-react";
-import { getSessionUser } from "@/lib/auth";
+import { getDbUser } from "@/lib/auth";
 
 export default async function Home() {
-  const user = await getSessionUser();
+  const user = await getDbUser();
 
   return (
     <div className="relative overflow-hidden min-h-screen">

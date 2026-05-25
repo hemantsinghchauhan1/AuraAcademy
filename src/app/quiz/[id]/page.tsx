@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/lib/auth";
+import { ensureDbUser } from "@/lib/auth";
 import { getQuizDetails } from "@/services/quizService";
 import { redirect } from "next/navigation";
 import QuizClient from "./QuizClient";
@@ -8,11 +8,11 @@ interface QuizPageProps {
 }
 
 export default async function QuizPage({ params }: QuizPageProps) {
-  const user = await getSessionUser();
+  const user = await ensureDbUser();
   const { id } = await params;
 
   if (!user) {
-    redirect(`/login?callbackUrl=/quiz/${id}`);
+    redirect(`/sign-in?redirect_url=/quiz/${id}`);
   }
 
   const quiz = await getQuizDetails(id);
@@ -32,11 +32,11 @@ export default async function QuizPage({ params }: QuizPageProps) {
           timeLimit: quiz.timeLimit,
           totalQuestions: quiz.totalQuestions,
           subjectName: quiz.subject?.name || "Subject",
-          questions: quiz.questions.map(q => ({
+          questions: quiz.questions.map((q) => ({
             id: q.id,
             quizId: q.quizId,
             questionText: q.questionText,
-            options: q.options.map(opt => ({
+            options: q.options.map((opt) => ({
               id: opt.id,
               questionId: opt.questionId,
               label: opt.label,

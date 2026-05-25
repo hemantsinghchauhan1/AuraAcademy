@@ -22,8 +22,9 @@ enum Difficulty {
 
 model User {
   id        String    @id @default(uuid())
+  clerkId   String?   @unique   // Clerk user ID (null for legacy JWT users)
   email     String    @unique
-  password  String    // Hashed
+  password  String?   // Hashed — optional (Clerk users have no local password)
   role      Role      @default(STUDENT)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -35,6 +36,7 @@ model User {
   votes     Vote[]
 
   @@index([email])
+  @@index([clerkId])
 }
 
 model Profile {

@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/lib/auth";
+import { getDbUser } from "@/lib/auth";
 import { getSubjects, getQuizzes } from "@/services/quizService";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -13,10 +13,10 @@ const difficultyConfig = {
 };
 
 export default async function QuizListPage() {
-  const user = await getSessionUser();
+  const user = await getDbUser();
 
   if (!user) {
-    redirect("/login?callbackUrl=/quiz");
+    redirect("/sign-in?redirect_url=/quiz");
   }
 
   const [subjects, quizzes] = await Promise.all([getSubjects(), getQuizzes()]);
