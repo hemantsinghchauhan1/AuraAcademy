@@ -21,24 +21,31 @@ enum Difficulty {
 }
 
 model User {
-  id              String          @id @default(uuid())
-  clerkId         String?         @unique   // Clerk user ID (null for legacy JWT users)
-  email           String          @unique
-  password        String?         // Hashed — optional (Clerk users have no local password)
-  role            Role            @default(STUDENT)
-  isSuspended     Boolean         @default(false) // Suspended/banned flag
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id              String                 @id @default(uuid())
+  clerkId         String?                @unique   // Clerk user ID (null for legacy JWT users)
+  email           String                 @unique
+  password        String?                // Hashed — optional (Clerk users have no local password)
+  role            Role                   @default(STUDENT)
+  isSuspended     Boolean                @default(false) // Suspended/banned flag
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
   profile         Profile?
   attempts        Attempt[]
   analytics       Analytics?
-  posts           Post[]          // Forum relations
+  posts           Post[]                 // Forum relations
   comments        Comment[]
   votes           Vote[]
-  reportsCreated  Report[]        @relation("Reporter")
-  moderatorLogs   ModerationLog[] @relation("ModeratorRelation")
-  adminActions    AdminAction[]   @relation("AdminRelation")
+  reportsCreated  Report[]               @relation("Reporter")
+  moderatorLogs   ModerationLog[]        @relation("ModeratorRelation")
+  adminActions    AdminAction[]          @relation("AdminRelation")
   uploadedFiles   UploadedFile[]
+  
+  // LMS relations
+  enrollments          Enrollment[]
+  lessonProgress       LessonProgress[]
+  submissions          AssignmentSubmission[] @relation("StudentSubmissions")
+  gradedSubmissions    AssignmentSubmission[] @relation("GradedBySubmissions")
+  courseReviews        CourseReview[]
 
   @@index([email])
   @@index([clerkId])
@@ -80,6 +87,7 @@ model Quiz {
   difficulty     Difficulty @default(MEDIUM)
   questions      Question[]
   attempts       Attempt[]
+  lessons        Lesson[]   // Linked LMS lessons
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -327,5 +335,170 @@ model PaperCategory {
   description String?
   files       UploadedFile[]
   createdAt   DateTime       @default(now())
+}
+
+// --- PHASE 7: Structured Course Learning System Models ---
+
+model Course {
+  id           String         @id @default(uuid())
+  title        String
+  slug         String         @unique
+  description  String
+  thumbnailUrl String?
+  isPublished  Boolean        @default(false)
+  isPremium    Boolean        @default(false)
+  
+  // Relations
+  modules      Module[]
+  enrollments  Enrollment[]
+  reviews      CourseReview[]
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  order       Int
+  
+  lessons     Lesson[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+enum VideoType {
+  YOUTUBE
+  LOOM
+  URL
+}
+
+model Lesson {
+  id           String           @id @default(uuid())
+  moduleId     String
+  module       Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title        String
+  content      String           // Markdown text body
+  
+  // Video fields
+  videoUrl     String?
+  videoType    VideoType?
+  order        Int
+  
+  // Quiz Connection (Optional)
+  quizId       String?
+  quiz         Quiz?            @relation(fields: [quizId], references: [id], onDelete: SetNull)
+  
+  // Relations
+  resources    Resource[]
+  progress     LessonProgress[]
+  assignments  Assignment[]
+  
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([moduleId])
+}
+
+model Resource {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([lessonId])
+}
+
+model Enrollment {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed Boolean  @default(false)
+  watchTime Int      @default(0) // watched seconds
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+}
+
+model Assignment {
+  id          String                 @id @default(uuid())
+  title       String
+  description String                 // Instructions Markdown
+  lessonId    String
+  lesson      Lesson                 @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  dueDate     DateTime?
+  submissions AssignmentSubmission[]
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([lessonId])
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(uuid())
+  assignmentId String
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User             @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  
+  fileUrl      String           // Uploaded PDF or image base64
+  comment      String?
+  status       SubmissionStatus @default(PENDING)
+  
+  feedback     String?
+  gradedById   String?
+  gradedBy     User?            @relation("GradedBySubmissions", fields: [gradedById], references: [id], onDelete: SetNull)
+  
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([assignmentId])
+  @@index([studentId])
+}
+
+model CourseReview {
+  id        String   @id @default(uuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
 }
 
