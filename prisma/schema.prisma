@@ -1,0 +1,97 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String    // Hashed
+  role      String    @default("STUDENT") // "STUDENT" | "INSTRUCTOR" | "ADMIN"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  profile   Profile?
+  attempts  Attempt[]
+  analytics Analytics?
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  avatarUrl String?
+  streak    Int      @default(0)
+  xp        Int      @default(0)
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String
+  icon        String   // Lucide icon name
+  quizzes     Quiz[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Quiz {
+  id             String     @id @default(uuid())
+  title          String
+  description    String
+  subjectId      String
+  subject        Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  timeLimit      Int?       // In minutes
+  totalQuestions Int
+  difficulty     String     @default("MEDIUM") // "EASY" | "MEDIUM" | "HARD"
+  questions      Question[]
+  attempts       Attempt[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  questionText  String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer String   // "A", "B", "C", or "D"
+  explanation   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Attempt {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId         String
+  quiz           Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score          Int
+  totalQuestions Int
+  timeSpent      Int      // In seconds
+  answers        String   // JSON string of user answers {questionId: selectedOption}
+  completedAt    DateTime @default(now())
+}
+
+model Analytics {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weakTopics        String   // JSON string of weak topics with percentage correctness
+  overallAccuracy   Float    @default(0.0) // Percentage
+  totalQuizzesTaken Int      @default(0)
+  updatedAt         DateTime @updatedAt
+}
