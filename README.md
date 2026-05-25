@@ -1,36 +1,151 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AuraAcademy - End-to-End Scalable Student Learning Ecosystem
 
-## Getting Started
+AuraAcademy is a production-grade, highly scalable student workspace designed to optimize study habits, trace microscopic syllabus weaknesses, and foster collaborative group learning. The platform blends an interactive timed quiz runner with custom-rendered SVG diagnostic analytics and a peer forum engine.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🌟 Core Features Built (Phase 1 MVP)
+
+### 1. Interactive Timed Quiz Engine
+* Timed exam papers modeled after real university midterm and final structures.
+* Dynamic question navigator grid tracking answered, skipped, and flagged status in real-time.
+* Auto-submission locks when the session countdown timer reaches zero.
+* Instant post-exam scores, correctness classifications, and comprehensive background explanations.
+
+### 2. Microscopic Analytics & Weak Topics Dashboard
+* Micro-analytics mapping accuracy metrics directly to academic subjects (Mathematics, Quantum Physics, Computer Science).
+* Automated diagnostics grouping low-performing subject sectors (below 70% accuracy) as "Weak Topics" with personalized study tips.
+* Real-time experience points (XP) rewards and active study streak (🔥) calculation.
+* Podium-style weekly scoreboard (Leaderboard) showing global rank, overall points, and streak status.
+
+### 3. Stateless Cryptography Authentication & Route Interceptors
+* Secure user signup and signin credentials validation.
+* Secure pbkdf2 cryptographic hashing and verification (zero external C-native module compiling required).
+* Lightweight, edge-ready JWT signing and cookie session injection.
+* Edge-optimized Next.js routing Middleware protecting dashboard spaces from unauthenticated users.
+
+---
+
+## 📐 Enterprise System Architecture
+
+AuraAcademy is engineered on Next.js 16 App Router using Turbopack for compilation. We employ a modular feature-based structure ensuring the project scales elegantly:
+
+```text
+src/
+├── app/                  # Next.js App Router (Layouts, Pages, Headers)
+├── components/           # Generic shared UI elements
+├── features/             # Feature-specific states, indicators, and hooks
+│   ├── auth/             # Login and signup views
+│   ├── dashboard/        # Performance logs, quick-stats, search controls
+│   ├── quizzes/          # Dynamic timed exam taker components
+│   └── analytics/        # SVG charts and weakness diagnostics boards
+├── lib/                  # Server-side initializations (Prisma client, JWT signers)
+├── services/             # Direct database querying APIs & Server Actions
+├── store/                # Zustand global states (active quiz runners, lightweight session)
+├── types/                # Strict TypeScript declaration types
+└── utils/                # Standard helper utilities ( Tailwind mergers )
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 💾 Core Database Schema (Prisma)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```mermaid
+erDiagram
+    User ||--o| Profile : "has profile"
+    User ||--o| Analytics : "diagnoses performance"
+    User ||--o| Attempt : "completes"
+    Subject ||--o| Quiz : "groups"
+    Quiz ||--o| Question : "contains"
+    Quiz ||--o| Attempt : "records"
 
-## Learn More
+    User {
+        String id PK
+        String email UK
+        String password
+        String role
+        DateTime createdAt
+    }
+    Profile {
+        String id PK
+        String userId FK
+        String name
+        Int streak
+        Int xp
+        String bio
+    }
+    Subject {
+        String id PK
+        String name UK
+        String slug UK
+        String description
+        String icon
+    }
+    Quiz {
+        String id PK
+        String subjectId FK
+        String title
+        String description
+        Int timeLimit
+        Int totalQuestions
+        String difficulty
+    }
+    Question {
+        String id PK
+        String quizId FK
+        String questionText
+        String optionA
+        String optionB
+        String optionC
+        String optionD
+        String correctAnswer
+        String explanation
+    }
+    Attempt {
+        String id PK
+        String userId FK
+        String quizId FK
+        Int score
+        Int totalQuestions
+        Int timeSpent
+        String answers
+        DateTime completedAt
+    }
+    Analytics {
+        String id PK
+        String userId FK
+        String weakTopics
+        Float overallAccuracy
+        Int totalQuizzesTaken
+    }
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 Quick Local Launch
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Clone & Install Dependencies**:
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-## Deploy on Vercel
+2. **Setup database configurations & generate local models**:
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Spin up local dev server**:
+   ```bash
+   npm run dev
+   ```
+   Navigate to [http://localhost:3000](http://localhost:3000) to begin!
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## ⚡ Scalability & Security Notes
+
+* **Security**: Password hashing utilizes Node's built-in pbkdf2 algorithm with uniquely salted iterations, preventing rainbow table attacks. JWT sessions use stateless HTTP-only cookies, preventing cross-site scripting (XSS) exposures.
+* **Edge-Optimized Middleware**: Auth checks occur in Next.js Middleware under edge rules, immediately deflecting unauthorized visitors with minimal network overhead.
+* **Database Scaling**: Designed with full relational integrity constraints (foreign keys, cascade deletes, unique indices). Moving from local SQLite to high-durability PostgreSQL takes a simple one-word provider switch in `schema.prisma`!
