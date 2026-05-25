@@ -5,6 +5,7 @@ import { db } from "./db";
 // getDbUser()
 // Gets the currently authenticated Prisma user by Clerk session.
 // Returns null if not authenticated or user not found in DB.
+// NOTE: Does NOT throw — safe to call from any server component.
 // ─────────────────────────────────────────────────────────────
 export async function getDbUser() {
   try {
@@ -23,8 +24,13 @@ export async function getDbUser() {
     });
 
     return user;
-  } catch (e) {
-    console.error("getDbUser error:", e);
+  } catch (e: any) {
+    // Don't swallow Next.js redirect/notFound errors — re-throw them
+    if (e?.digest?.startsWith("NEXT_REDIRECT") || e?.digest?.startsWith("NEXT_NOT_FOUND")) {
+      throw e;
+    }
+    // For dynamic server usage errors during static generation — return null gracefully
+    console.error("getDbUser error:", e?.message || e);
     return null;
   }
 }
@@ -33,13 +39,14 @@ export async function getDbUser() {
 // ensureDbUser()
 // Called on first sign-in to sync Clerk user → Prisma.
 // Creates User + Profile + Analytics if they don't exist.
-// Used as a fallback if webhook hasn't fired yet.
+// IMPORTANT: Uses auth() which requires a valid Clerk session.
 // ─────────────────────────────────────────────────────────────
 export async function ensureDbUser() {
-  try {
-    const { userId } = await auth();
-    if (!userId) return null;
+  // Let auth() throw naturally — Clerk middleware handles the redirect
+  const { userId } = await auth();
+  if (!userId) return null;
 
+  try {
     // Check if already synced
     const existing = await db.user.findUnique({
       where: { clerkId: userId },
@@ -47,7 +54,7 @@ export async function ensureDbUser() {
     });
     if (existing) return existing;
 
-    // Fetch Clerk user details
+    // Fetch Clerk user details for profile creation
     const clerkUser = await currentUser();
     if (!clerkUser) return null;
 
@@ -58,7 +65,7 @@ export async function ensureDbUser() {
       "Student";
     const avatarUrl = clerkUser.imageUrl || null;
 
-    // Create in a transaction
+    // Create User + Profile + Analytics in a single transaction
     const newUser = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -91,21 +98,25 @@ export async function ensureDbUser() {
       return user;
     });
 
+    console.log(`✅ Prisma user auto-provisioned via ensureDbUser: ${userId}`);
     return newUser;
-  } catch (e) {
-    console.error("ensureDbUser error:", e);
+  } catch (e: any) {
+    // Re-throw Next.js control flow errors
+    if (e?.digest?.startsWith("NEXT_REDIRECT") || e?.digest?.startsWith("NEXT_NOT_FOUND")) {
+      throw e;
+    }
+    console.error("ensureDbUser error:", e?.message || e);
     return null;
   }
 }
 
-// Legacy stubs — kept for graceful backwards compatibility
-// These are no-ops in the Clerk world; Clerk handles all session management
+// Legacy compatibility stubs — kept for any server actions that import from this module
 export async function getSessionUser() {
   return getDbUser();
 }
 
 export async function clearSession() {
-  // Clerk handles sign-out via <SignOutButton> or clerk.signOut()
+  // No-op — Clerk handles sign-out via UserButton or clerk.signOut()
 }
 
 export async function createSession(_userId: string) {

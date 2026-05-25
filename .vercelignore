@@ -1,0 +1,6 @@
+# Exclude local environment files from Vercel deployment
+# Production env vars are set directly in Vercel dashboard/CLI
+.env
+.env.local
+.env.development
+.env.development.local
