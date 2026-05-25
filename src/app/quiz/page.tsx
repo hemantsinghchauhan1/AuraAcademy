@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Clock, Target, ChevronRight, Zap, Trophy } from "lucide-react";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const difficultyConfig = {
   EASY: { label: "Easy", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },

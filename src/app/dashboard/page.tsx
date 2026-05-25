@@ -5,9 +5,10 @@ import {
   getUserAttempts,
   getUserAnalytics,
 } from "@/services/quizService";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import DashboardClient from "./DashboardClient";
 
+export const dynamic = "force-dynamic"; // Always server-render (never statically generate)
 export const revalidate = 0; // Live updates — no caching
 
 export default async function DashboardPage() {
