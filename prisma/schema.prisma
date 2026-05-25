@@ -30,6 +30,9 @@ model User {
   profile   Profile?
   attempts  Attempt[]
   analytics Analytics?
+  posts     Post[]    // Forum relations
+  comments  Comment[]
+  votes     Vote[]
 
   @@index([email])
 }
@@ -80,7 +83,7 @@ model Question {
   quizId        String
   quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   questionText  String
-  options       Option[] // Upgraded modular relational Option model
+  options       Option[] // Upgraded relational Option model
   correctAnswer String   // Must correspond to the label of one of the Options (e.g. "A", "B", "C", "D")
   explanation   String
   createdAt     DateTime @default(now())
@@ -136,4 +139,63 @@ model Leaderboard {
   updatedAt DateTime @updatedAt
 
   @@index([xp(sort: Desc)])
+}
+
+// --- FORUMS & PEER COMMUNITIES MODELS ---
+
+model Community {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique // e.g. "quantum-math"
+  description String
+  posts       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  title       String
+  content     String    // Markdown text body
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  upvotes     Int       @default(0)
+  comments    Comment[]
+  votes       Vote[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([communityId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String   // Comment text content
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  value     Int      // 1 for Upvote, -1 for Downvote
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId]) // Compound unique key to prevent double-voting!
+  @@index([postId])
 }

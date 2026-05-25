@@ -95,3 +95,58 @@ export interface LeaderboardEntry {
   rank: number;
   updatedAt: string;
 }
+
+// --- FORUMS & COMMUNITIES INTERFACES ---
+
+export interface Community {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string; // markdown text content
+  userId: string;
+  user?: {
+    email: string;
+    profile?: {
+      name: string;
+      avatarUrl: string | null;
+    }
+  };
+  communityId: string;
+  community?: Community;
+  upvotes: number;
+  commentsCount?: number;
+  comments?: Comment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  userId: string;
+  user?: {
+    email: string;
+    profile?: {
+      name: string;
+      avatarUrl: string | null;
+    }
+  };
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Vote {
+  id: string;
+  userId: string;
+  postId: string;
+  value: number; // 1 or -1
+}
