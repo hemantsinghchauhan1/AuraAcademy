@@ -53,6 +53,7 @@ export default async function RootLayout({
               <nav className="hidden md:flex space-x-8">
                 <a href="/" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Home</a>
                 <a href="/dashboard" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Dashboard</a>
+                <a href="/quiz" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Quizzes</a>
                 <a href="/leaderboard" className="text-gray-400 hover:text-white transition-colors text-sm font-medium">Leaderboard</a>
               </nav>
 
